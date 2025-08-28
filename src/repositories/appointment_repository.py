@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_, func, text
+from sqlalchemy import and_, text
 from typing import Optional, List
-from datetime import date, datetime
+from datetime import date
 
 from src.models.appointment import (
     Department, Doctor, DoctorAvailableSlot,
@@ -12,7 +12,7 @@ class DepartmentRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all_active(self) -> List[Department]:
+    def get_all_active(self) -> list[type[Department]]:
         """Lấy danh sách khoa đang hoạt động"""
         return self.db.query(Department).filter(Department.is_active == True).all()
 
@@ -24,7 +24,7 @@ class DoctorRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_department(self, department_id: int) -> List[Doctor]:
+    def get_by_department(self, department_id: int) -> list[type[Doctor]]:
         """Lấy danh sách bác sĩ theo khoa"""
         return (self.db.query(Doctor)
                 .options(joinedload(Doctor.department))
@@ -43,7 +43,7 @@ class DoctorRepository:
                 .filter(Doctor.id == doctor_id)
                 .first())
 
-    def get_all_active(self) -> List[Doctor]:
+    def get_all_active(self) -> list[type[Doctor]]:
         """Lấy tất cả bác sĩ đang hoạt động"""
         return (self.db.query(Doctor)
                 .options(joinedload(Doctor.department))
@@ -146,7 +146,7 @@ class AppointmentRepository:
             status: Optional[AppointmentStatus] = None,
             from_date: Optional[date] = None,
             to_date: Optional[date] = None
-    ) -> List[Appointment]:
+    ) -> list[type[Appointment]]:
         """Lấy lịch khám của bệnh nhân"""
         query = (self.db.query(Appointment)
                  .options(
@@ -178,13 +178,14 @@ class AppointmentRepository:
                          a.appointment_date,
                          a.appointment_time,
                          a.reason,
+                         a.is_emergency,
                          a.created_at
                      FROM appointment_mgmt.appointments a
                               JOIN appointment_mgmt.patients p ON a.patient_id = p.id
                               JOIN appointment_mgmt.doctors d ON a.doctor_id = d.id
                               JOIN appointment_mgmt.departments dept ON a.department_id = dept.id
                      WHERE a.status = 'PENDING' AND a.doctor_id = :doctor_id
-                     ORDER BY a.created_at ASC
+                     ORDER BY a.is_emergency DESC, a.created_at ASC
                      """)
 
         result = self.db.execute(query, {'doctor_id': doctor_id})
@@ -202,10 +203,11 @@ class AppointmentRepository:
             doctor_id: Optional[int] = None,
             department_id: Optional[int] = None,
             status: Optional[AppointmentStatus] = None,
+            is_emergency: Optional[bool] = None,
             appointment_date: Optional[date] = None,
             from_date: Optional[date] = None,
             to_date: Optional[date] = None
-    ) -> List[Appointment]:
+    ) -> list[type[Appointment]]:
         """Lấy lịch khám theo bộ lọc"""
         query = (self.db.query(Appointment)
         .options(
@@ -222,6 +224,8 @@ class AppointmentRepository:
             query = query.filter(Appointment.department_id == department_id)
         if status:
             query = query.filter(Appointment.status == status)
+        if is_emergency is not None:
+            query = query.filter(Appointment.is_emergency == is_emergency)
         if appointment_date:
             query = query.filter(Appointment.appointment_date == appointment_date)
         if from_date:
@@ -229,7 +233,7 @@ class AppointmentRepository:
         if to_date:
             query = query.filter(Appointment.appointment_date <= to_date)
 
-        return query.order_by(Appointment.appointment_date.desc()).all()
+        return query.order_by(Appointment.is_emergency.desc(), Appointment.appointment_date.desc()).all()
 
     def check_appointment_conflict(
             self,

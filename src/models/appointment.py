@@ -42,8 +42,8 @@ class Doctor(Base):
     # Relationships
     department = relationship("Department", back_populates="doctors")
     available_slots = relationship("DoctorAvailableSlot", back_populates="doctor")
-    appointments = relationship("Appointment", back_populates="doctor")
-    confirmed_appointments = relationship("Appointment", foreign_keys="Appointment.confirmed_by")
+    appointments = relationship("Appointment", back_populates="doctor", foreign_keys="[Appointment.doctor_id]")
+    confirmed_appointments = relationship("Appointment", back_populates="confirmer", foreign_keys="[Appointment.confirmed_by]")
 
     def __repr__(self):
         return f"<Doctor(id={self.id}, name='{self.name}')>"
@@ -102,6 +102,7 @@ class Appointment(Base):
     appointment_date = Column(Date, nullable=False)
     appointment_time = Column(Time, nullable=False)
     reason = Column(Text, nullable=False)
+    is_emergency = Column(Boolean, default=False, nullable=False)  # New field for emergency appointments
 
     # Status Management
     status = Column(SQLEnum(AppointmentStatus), default=AppointmentStatus.PENDING)
@@ -128,7 +129,7 @@ class Appointment(Base):
     doctor = relationship("Doctor", back_populates="appointments", foreign_keys=[doctor_id])
     department = relationship("Department", back_populates="appointments")
     slot = relationship("DoctorAvailableSlot", back_populates="appointments")
-    confirmer = relationship("Doctor", foreign_keys=[confirmed_by])
+    confirmer = relationship("Doctor", back_populates="confirmed_appointments", foreign_keys=[confirmed_by])
 
     def __repr__(self):
         return f"<Appointment(id={self.id}, patient_id={self.patient_id}, status={self.status})>"

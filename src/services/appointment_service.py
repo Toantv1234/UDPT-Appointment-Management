@@ -115,6 +115,7 @@ class AppointmentService:
             appointment_date=slot.available_date,
             appointment_time=slot.start_time,
             reason=appointment_data.reason,
+            is_emergency=appointment_data.is_emergency,
             status=AppointmentStatus.PENDING
         )
 
@@ -280,6 +281,10 @@ class AppointmentService:
         if update_data.reason:
             appointment.reason = update_data.reason
 
+        # Update emergency status if provided
+        if update_data.is_emergency is not None:
+            appointment.is_emergency = update_data.is_emergency
+
         # 6. Update appointment (triggers will handle slot booking/release)
         updated_appointment = self.appointment_repo.update(appointment)
 
@@ -332,14 +337,20 @@ class AppointmentService:
                 detail="Invalid cancelled_by value"
             )
 
-        # 4. Check time constraints (example: cannot cancel within 2 hours)
+        # 4. Check time constraints for emergency vs regular appointments
         appointment_datetime = datetime.combine(appointment.appointment_date, appointment.appointment_time)
         hours_until_appointment = (appointment_datetime - datetime.now()).total_seconds() / 3600
 
-        if hours_until_appointment < 2:  # Less than 2 hours
+        # Different rules for emergency vs regular appointments
+        if not appointment.is_emergency and hours_until_appointment < 2:  # Regular appointments: 2 hours minimum
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot cancel appointment within 2 hours of scheduled time. Please contact the hospital directly."
+                detail="Cannot cancel regular appointment within 2 hours of scheduled time. Please contact the hospital directly."
+            )
+        elif appointment.is_emergency and hours_until_appointment < 0.5:  # Emergency appointments: 30 minutes minimum
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot cancel emergency appointment within 30 minutes of scheduled time. Please contact the hospital directly."
             )
 
         # 5. Cancel appointment
@@ -366,6 +377,7 @@ class AppointmentService:
             doctor_id=query_params.doctor_id,
             department_id=query_params.department_id,
             status=query_params.status,
+            is_emergency=query_params.is_emergency,
             appointment_date=query_params.appointment_date,
             from_date=query_params.from_date,
             to_date=query_params.to_date
@@ -457,6 +469,7 @@ class AppointmentService:
             appointment_date=appointment.appointment_date,
             appointment_time=appointment.appointment_time,
             reason=appointment.reason,
+            is_emergency=appointment.is_emergency,
             status=appointment.status,
             created_at=appointment.created_at,
             updated_at=appointment.updated_at

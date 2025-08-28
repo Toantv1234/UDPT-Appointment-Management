@@ -6,7 +6,7 @@ from datetime import date
 from src.services.appointment_service import AppointmentService
 from src.dto.appointment_dto import (
     # Response DTOs
-    DepartmentResponseDTO, DoctorResponseDTO, PatientResponseDTO,
+    DepartmentResponseDTO, DoctorResponseDTO,
     AvailableSlotResponseDTO, AppointmentResponseDTO, AppointmentDetailResponseDTO,
     PendingAppointmentResponseDTO, MessageResponseDTO,
 
@@ -242,6 +242,7 @@ async def get_appointments(
         doctor_id: Optional[int] = Query(None, gt=0, description="Filter by doctor ID"),
         department_id: Optional[int] = Query(None, gt=0, description="Filter by department ID"),
         status: Optional[AppointmentStatusEnum] = Query(None, description="Filter by appointment status"),
+        is_emergency: Optional[bool] = Query(None, description="Filter by emergency status"),
         appointment_date: Optional[date] = Query(None, description="Filter by specific date"),
         from_date: Optional[date] = Query(None, description="Filter from date"),
         to_date: Optional[date] = Query(None, description="Filter to date"),
@@ -257,6 +258,7 @@ async def get_appointments(
         doctor_id=doctor_id,
         department_id=department_id,
         status=status,
+        is_emergency=is_emergency,
         appointment_date=appointment_date,
         from_date=from_date,
         to_date=to_date

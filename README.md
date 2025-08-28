@@ -8,10 +8,10 @@
 
 ## Team
 
-- **Toàn Từ** - Backend API, Use Cases
-- **Khải Trần** - Authentication & Security
-- **Khang Bùi** - Reporting & Analytics
-- **Khoa Lý** - Notifications & Medications# UDPT-Appointment-Management
+- **Toàn Từ**
+- **Khải Trần**
+- **Khang Bùi** 
+- **Khoa Lý**
 
 Microservice quản lý lịch khám cho hệ thống bệnh viện.
 
@@ -84,23 +84,9 @@ APP__DEBUG=true
 APP__HOST=127.0.0.1
 APP__PORT=8005
 ```
-
-4. **Khởi tạo database** (nếu dùng Docker)
-```bash
-poetry run task up
-```
-
-5. **Start server**
+4. **Start server**
 ```bash
 poetry run task start
-# hoặc development mode
-poetry run task dev
-```
-
-6. **Clean up databases**
-```bash
-poetry run task down
-```
 
 ## API Endpoints
 
@@ -161,11 +147,6 @@ POST /appointments/
   "reason": "Khám tổng quát"
 }
 ```
-
-## Database Schema
-
-Xem file `resources/scripts/postgres/V.0_0_1.sql` cho schema đầy đủ.
-
 ### Key Features
 
 - **Triggers tự động** book/release slots khi tạo/hủy lịch
