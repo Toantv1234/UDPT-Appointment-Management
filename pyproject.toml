@@ -1,0 +1,33 @@
+[project]
+name = "udpt-appointment-management"
+version = "0.1.0"
+description = "Back end mircroservice for quản lý lịch khám"
+authors = [
+    {name = "Toàn Từ",email = "toantu03@gmail.com"},
+    {name = "Khải Trần",email = "khaihckn@gmail.com"},
+    {name = "Khang Bùi",email = "chikhangbui@gmail.com"}
+]
+readme = "README.md"
+
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "fastapi (>=0.116.1,<0.117.0)",
+    "sqlalchemy (>=2.0.41,<3.0.0)",
+    "pydantic (>=2.11.7,<3.0.0)",
+    "taskipy (>=1.14.1,<2.0.0)",
+    "poetry-plugin-export (>=1.9.0,<2.0.0)",
+    "uvicorn (>=0.35.0,<0.36.0)",
+    "email-validator (>=2.2.0,<3.0.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)",
+    "psycopg2 (>=2.9.10,<3.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.taskipy.tasks]
+start = " python -m src.main"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
