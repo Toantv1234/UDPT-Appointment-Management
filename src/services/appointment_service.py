@@ -1,3 +1,4 @@
+import fastapi
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from datetime import datetime, date
@@ -11,13 +12,14 @@ from src.models.appointment import (
     Department, Doctor, Patient, Appointment, AppointmentStatus
 )
 from src.dto.appointment_dto import (
-    DepartmentResponseDTO, DoctorResponseDTO,
+    DepartmentResponseDTO, DoctorResponseDTO, PatientResponseDTO,
     AvailableSlotResponseDTO, AppointmentCreateDTO, AppointmentUpdateDTO,
     AppointmentConfirmDTO, AppointmentCancelDTO, AppointmentResponseDTO,
     AppointmentDetailResponseDTO, PendingAppointmentResponseDTO,
     AppointmentListQueryDTO, AvailableSlotQueryDTO, MessageResponseDTO
 )
 from src.dto.pagination_dto import PaginatedResponseDTO, PaginationRequestDTO
+from src.services.user_auth_service import UserAuthService
 
 class AppointmentService:
     def __init__(self, db: Session):
@@ -27,6 +29,7 @@ class AppointmentService:
         self.slot_repo = AvailableSlotRepository(db)
         self.patient_repo = PatientRepository(db)
         self.appointment_repo = AppointmentRepository(db)
+        self.user_auth_service = UserAuthService(self.doctor_repo, self.patient_repo)
 
     # ===============================
     # Use Case Support Methods
@@ -415,7 +418,7 @@ class AppointmentService:
         appointment = self.appointment_repo.get_by_id(appointment_id)
         if not appointment:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=fastapi.status.HTTP_404_NOT_FOUND,
                 detail=f"Appointment with id {appointment_id} not found"
             )
 
@@ -432,7 +435,7 @@ class AppointmentService:
                 status_enum = AppointmentStatus(status.upper())
             except ValueError:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
+                    status_code=fastapi.status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid status: {status}"
                 )
 
@@ -440,8 +443,41 @@ class AppointmentService:
         return [self._build_appointment_response(appointment) for appointment in appointments]
 
     # ===============================
-    # Patient Validation (patients managed by other microservice)
+    # User Profile Management
     # ===============================
+
+    def get_user_profile(self, user_id: int) -> dict:
+        """Lấy thông tin profile của user (doctor hoặc patient)"""
+        role, doctor, patient = self.user_auth_service.get_user_role_and_profile(user_id)
+
+        profile_data = {
+            "role": role
+        }
+
+        if doctor:
+            profile_data["doctor"] = DoctorResponseDTO.model_validate(doctor)
+            profile_data["doctor"].department_name = doctor.department.name
+
+        if patient:
+            profile_data["patient"] = PatientResponseDTO.model_validate(patient)
+
+        return profile_data
+
+    def get_current_user_appointments(self, user_id: int) -> List[AppointmentResponseDTO]:
+        """Lấy lịch khám của user hiện tại (tùy theo role)"""
+        role, doctor, patient = self.user_auth_service.get_user_role_and_profile(user_id)
+
+        if doctor:
+            # Nếu là doctor, lấy lịch khám của doctor đó
+            appointments = self.appointment_repo.get_appointments_by_filters(doctor_id=doctor.id)
+        elif patient:
+            # Nếu là patient, lấy lịch khám của patient đó
+            appointments = self.appointment_repo.get_appointments_by_filters(patient_id=patient.id)
+        else:
+            # User không có profile
+            return []
+
+        return [self._build_appointment_response(appointment) for appointment in appointments]
 
     def _validate_patient_exists(self, patient_id: int) -> None:
         """Validate patient exists (assume managed by other microservice)"""

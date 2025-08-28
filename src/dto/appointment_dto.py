@@ -32,11 +32,13 @@ class DepartmentResponseDTO(BaseModel):
 
 class DoctorResponseDTO(BaseModel):
     id: int
+    user_id: Optional[int]
     name: str
     department_id: int
     department_name: Optional[str] = None
     is_active: bool
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -47,10 +49,12 @@ class DoctorResponseDTO(BaseModel):
 
 class PatientResponseDTO(BaseModel):
     id: int
+    user_id: Optional[int]
     name: str
     phone: Optional[str]
     email: Optional[str]
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

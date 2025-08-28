@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, text
-from typing import Optional, List
-from datetime import date
+from sqlalchemy import and_, or_, func, text
+from typing import Optional, List, Any
+from datetime import date, datetime
 
 from src.models.appointment import (
     Department, Doctor, DoctorAvailableSlot,
@@ -41,6 +41,13 @@ class DoctorRepository:
         return (self.db.query(Doctor)
                 .options(joinedload(Doctor.department))
                 .filter(Doctor.id == doctor_id)
+                .first())
+
+    def get_by_user_id(self, user_id: int) -> Optional[type[Doctor]]:
+        """Lấy bác sĩ theo user_id"""
+        return (self.db.query(Doctor)
+                .options(joinedload(Doctor.department))
+                .filter(Doctor.user_id == user_id)
                 .first())
 
     def get_all_active(self) -> list[type[Doctor]]:
@@ -114,8 +121,12 @@ class PatientRepository:
         self.db = db
 
     def get_by_id(self, patient_id: int) -> Optional[Patient]:
-        """Lấy bệnh nhân theo ID - chỉ để validation"""
+        """Lấy bệnh nhân theo ID"""
         return self.db.query(Patient).filter(Patient.id == patient_id).first()
+
+    def get_by_user_id(self, user_id: int) -> Optional[type[Patient]]:
+        """Lấy bệnh nhân theo user_id"""
+        return self.db.query(Patient).filter(Patient.user_id == user_id).first()
 
 class AppointmentRepository:
     def __init__(self, db: Session):

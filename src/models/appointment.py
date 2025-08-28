@@ -34,10 +34,12 @@ class Doctor(Base):
     __table_args__ = {"schema": "appointment_mgmt"}
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, unique=True, nullable=True, index=True)  # Reference to admin.user.id
     name = Column(String(100), nullable=False)
     department_id = Column(Integer, ForeignKey("appointment_mgmt.departments.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     department = relationship("Department", back_populates="doctors")
@@ -74,10 +76,12 @@ class Patient(Base):
     __table_args__ = {"schema": "appointment_mgmt"}
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, unique=True, nullable=True, index=True)  # Reference to admin.user.id
     name = Column(String(100), nullable=False)
     phone = Column(String(20))
     email = Column(String(100))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     appointments = relationship("Appointment", back_populates="patient")

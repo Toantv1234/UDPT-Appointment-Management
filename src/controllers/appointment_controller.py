@@ -30,6 +30,42 @@ def get_appointment_service(db: Session = Depends(get_db)) -> AppointmentService
     return AppointmentService(db)
 
 # ===============================
+# User Profile & Authentication
+# ===============================
+
+@router.get(
+    "/profile",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Get user profile",
+    description="Get current user's profile (doctor or patient)"
+)
+async def get_user_profile(
+        current_user_id: int = Query(..., gt=0, description="Current authenticated user ID"),
+        service: AppointmentService = Depends(get_appointment_service)
+):
+    """
+    Lấy thông tin profile của user hiện tại
+    """
+    return service.get_user_profile(current_user_id)
+
+@router.get(
+    "/my-appointments",
+    response_model=List[AppointmentResponseDTO],
+    status_code=status.HTTP_200_OK,
+    summary="Get current user appointments",
+    description="Get appointments for current user (doctor or patient)"
+)
+async def get_my_appointments(
+        current_user_id: int = Query(..., gt=0, description="Current authenticated user ID"),
+        service: AppointmentService = Depends(get_appointment_service)
+):
+    """
+    Lấy danh sách lịch khám của user hiện tại
+    """
+    return service.get_current_user_appointments(current_user_id)
+
+# ===============================
 # Supporting Endpoints for Use Cases
 # ===============================
 
