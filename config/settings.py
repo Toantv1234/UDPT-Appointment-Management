@@ -55,7 +55,7 @@ class Settings(BaseModel):
 
 # Load settings from environment
 def get_settings() -> Settings:
-    load_dotenv("../.env")
+    load_dotenv("./.env")
     """
     Get application settings with environment variable overrides
 
