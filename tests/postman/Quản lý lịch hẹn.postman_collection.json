@@ -1,0 +1,798 @@
+{
+	"info": {
+		"_postman_id": "f33b951d-5c48-47c3-88fb-48bb5f3b9c0d",
+		"name": "Quản lý lịch hẹn",
+		"description": "API Collection for testing Appointment Management microservice with 4 main use cases and Emergency appointments support",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38152871"
+	},
+	"item": [
+		{
+			"name": "Health & Status",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Root Endpoint",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Supporting Endpoints",
+			"item": [
+				{
+					"name": "Get Departments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/departments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"departments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Doctors by Department",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/departments/{{department_id}}/doctors",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"departments",
+								"{{department_id}}",
+								"doctors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Available Slots",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/available-slots?doctor_id={{doctor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"available-slots"
+							],
+							"query": [
+								{
+									"key": "doctor_id",
+									"value": "{{doctor_id}}"
+								},
+								{
+									"key": "department_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "available_date",
+									"value": "2025-08-29",
+									"disabled": true
+								},
+								{
+									"key": "from_date",
+									"value": "2025-08-29",
+									"disabled": true
+								},
+								{
+									"key": "to_date",
+									"value": "2025-08-29",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Use Case 1 - Book Appointment",
+			"item": [
+				{
+					"name": "Book Regular Appointment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('appointment_id', response.id);",
+									"    pm.test('Appointment created successfully', function () {",
+									"        pm.expect(response.is_emergency).to.eql(false);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_id\": {{patient_id}},\n  \"doctor_id\": {{doctor_id}},\n  \"department_id\": {{department_id}},\n  \"slot_id\": {{slot_id}},\n  \"reason\": \"Khám tổng quát định kỳ, có triệu chứng đau ngực nhẹ\",\n  \"is_emergency\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Book Emergency Appointment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('emergency_appointment_id', response.id);",
+									"    pm.test('Emergency appointment created', function () {",
+									"        pm.expect(response.is_emergency).to.eql(true);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_id\": {{patient_id}},\n  \"doctor_id\": {{doctor_id}},\n  \"department_id\": {{department_id}},\n  \"slot_id\": {{emergency_slot_id}},\n  \"reason\": \"Cấp cứu - đau ngực dữ dội, khó thở\",\n  \"is_emergency\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Use Case 2 - Confirm Appointment",
+			"item": [
+				{
+					"name": "Get Pending Appointments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/doctor/{{doctor_id}}/pending",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"doctor",
+								"{{doctor_id}}",
+								"pending"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Confirm Appointment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"action\": \"confirm\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}/confirm?confirmed_by={{doctor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}",
+								"confirm"
+							],
+							"query": [
+								{
+									"key": "confirmed_by",
+									"value": "{{doctor_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Appointment",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"action\": \"reject\",\n  \"rejection_reason\": \"Bác sĩ bận đột xuất\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}/confirm?confirmed_by={{doctor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}",
+								"confirm"
+							],
+							"query": [
+								{
+									"key": "confirmed_by",
+									"value": "{{doctor_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Use Case 3 - Update Appointment",
+			"item": [
+				{
+					"name": "Update Appointment Reason",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Khám tổng quát - cập nhật triệu chứng mới\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}?updated_by={{patient_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}"
+							],
+							"query": [
+								{
+									"key": "updated_by",
+									"value": "{{patient_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update to Emergency",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Triệu chứng nặng hơn - chuyển thành cấp cứu\",\n  \"is_emergency\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}?updated_by={{patient_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}"
+							],
+							"query": [
+								{
+									"key": "updated_by",
+									"value": "{{patient_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Use Case 4 - Cancel Appointment",
+			"item": [
+				{
+					"name": "Cancel by Patient",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cancelled_by\": \"PATIENT\",\n  \"cancellation_reason\": \"Có việc đột xuất\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}/cancel?cancelled_by_user={{patient_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}",
+								"cancel"
+							],
+							"query": [
+								{
+									"key": "cancelled_by_user",
+									"value": "{{patient_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel by Doctor",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cancelled_by\": \"DOCTOR\",\n  \"cancellation_reason\": \"Có ca cấp cứu\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}/cancel?cancelled_by_user={{doctor_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}",
+								"cancel"
+							],
+							"query": [
+								{
+									"key": "cancelled_by_user",
+									"value": "{{doctor_id}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Query & Reporting",
+			"item": [
+				{
+					"name": "Get All Appointments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/?page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								""
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								},
+								{
+									"key": "status",
+									"value": "PENDING",
+									"disabled": true
+								},
+								{
+									"key": "patient_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "doctor_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "department_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "is_emergency",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "appointment_date",
+									"value": "2025-08-29",
+									"disabled": true
+								},
+								{
+									"key": "from_date",
+									"value": "2025-08-29",
+									"disabled": true
+								},
+								{
+									"key": "to_date",
+									"value": "2025-08-29",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Emergency Appointments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/?is_emergency=true&page=1&page_size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								""
+							],
+							"query": [
+								{
+									"key": "is_emergency",
+									"value": "true"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appointments by Patient",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/patient/{{patient_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"patient",
+								"{{patient_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appointment Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/appointments/{{appointment_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								"{{appointment_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Book Unavailable Slot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_id\": {{patient_id}},\n  \"doctor_id\": {{doctor_id}},\n  \"department_id\": {{department_id}},\n  \"slot_id\": {{used_slot_id}},\n  \"reason\": \"Test booking unavailable slot\",\n  \"is_emergency\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Book with Non-existent Patient",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_id\": 999999,\n  \"doctor_id\": {{doctor_id}},\n  \"department_id\": {{department_id}},\n  \"slot_id\": {{slot_id}},\n  \"reason\": \"Test with non-existent patient\",\n  \"is_emergency\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/appointments/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"appointments",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"if (!pm.environment.get('base_url')) {",
+					"    pm.environment.set('base_url', 'http://127.0.0.1:8005');",
+					"}",
+					"if (!pm.environment.get('patient_id')) {",
+					"    pm.environment.set('patient_id', '1');",
+					"}",
+					"if (!pm.environment.get('doctor_id')) {",
+					"    pm.environment.set('doctor_id', '1');",
+					"}",
+					"if (!pm.environment.get('department_id')) {",
+					"    pm.environment.set('department_id', '1');",
+					"}",
+					"if (!pm.environment.get('slot_id')) {",
+					"    pm.environment.set('slot_id', '1');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test('Response time is reasonable', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});",
+					"",
+					"if (pm.response.headers.get('Content-Type') && pm.response.headers.get('Content-Type').includes('application/json')) {",
+					"    pm.test('Response is valid JSON', function () {",
+					"        pm.response.to.be.json;",
+					"    });",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8005"
+		},
+		{
+			"key": "patient_id",
+			"value": "1"
+		},
+		{
+			"key": "doctor_id",
+			"value": "1"
+		},
+		{
+			"key": "department_id",
+			"value": "1"
+		},
+		{
+			"key": "slot_id",
+			"value": "1"
+		},
+		{
+			"key": "emergency_slot_id",
+			"value": "2"
+		},
+		{
+			"key": "used_slot_id",
+			"value": "1"
+		},
+		{
+			"key": "appointment_id",
+			"value": ""
+		},
+		{
+			"key": "emergency_appointment_id",
+			"value": ""
+		}
+	]
+}
