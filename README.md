@@ -61,7 +61,7 @@ Sử dụng PostgreSQL với schema `appointment_mgmt`:
 
 1. **Install poetry**
 ```bash
-python -m pip install poetry
+python -m pip install poetry==2.1.3
 ```
 
 2. **Install dependencies**
