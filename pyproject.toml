@@ -1,11 +1,12 @@
 [project]
 name = "udpt-appointment-management"
 version = "0.1.0"
-description = "Back end mircroservice for quản lý lịch khám"
+description = "Microservice for Appointment Management - Hospital Management System"
 authors = [
-    {name = "Toàn Từ",email = "toantu03@gmail.com"},
-    {name = "Khải Trần",email = "khaihckn@gmail.com"},
-    {name = "Khang Bùi",email = "chikhangbui@gmail.com"}
+    {name = "Toàn Từ", email = "toantu03@gmail.com"},
+    {name = "Khải Trần", email = "khaihckn@gmail.com"},
+    {name = "Khang Bùi", email = "chikhangbui@gmail.com"},
+    {name = "Khoa Lý", email = "ldkhoa21@clc.fitus.edu.vn"}
 ]
 readme = "README.md"
 
@@ -26,7 +27,7 @@ dependencies = [
 package-mode = false
 
 [tool.taskipy.tasks]
-start = " python -m src.main"
+start = "python -m src.main"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

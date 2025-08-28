@@ -63,21 +63,24 @@ def test_db_connection() -> bool:
 # Initialize database tables
 def init_db():
     """
-    Initialize database tables
+    Initialize database tables for appointment management
     """
     try:
-        # Import all models here to ensure they are registered with Base
-        from src.models.user import User
+        # Import all appointment models to ensure they are registered with Base
+        from src.models.appointment import (
+            Department, Doctor, DoctorAvailableSlot,
+            Patient, Appointment
+        )
 
         # Create all tables
         Base.metadata.create_all(bind=engine)
-        print("Database tables created successfully")
+        print("Appointment management database tables created successfully")
 
         if settings.database.echo:
             print(f"Database URL: {settings.database.url}")
             print(f"Pool size: {settings.database.pool_size}")
 
     except Exception as e:
-        print(f"Failed to create database tables: {e}")
+        print(f"Failed to create appointment management database tables: {e}")
         print(f"Database URL: {settings.database.url}")
         raise

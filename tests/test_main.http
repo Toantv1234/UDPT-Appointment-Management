@@ -1,5 +1,207 @@
-# Test your FastAPI endpoints
+# tests/test_appointment.http
+# Test Appointment Management API Endpoints
 
+### Health Check
+GET http://127.0.0.1:8005/health
+Accept: application/json
+
+### Root Endpoint
 GET http://127.0.0.1:8005/
 Accept: application/json
 
+### ===============================
+### Supporting Endpoints
+### ===============================
+
+### Get Departments (Use Case Support)
+GET http://127.0.0.1:8005/appointments/departments
+Accept: application/json
+
+### Get Doctors by Department (Use Case Support)
+GET http://127.0.0.1:8005/appointments/departments/1/doctors
+Accept: application/json
+
+### Get Available Slots (Use Case Support)
+GET http://127.0.0.1:8005/appointments/available-slots?doctor_id=1
+Accept: application/json
+
+### Get Available Slots with Date Filter
+GET http://127.0.0.1:8005/appointments/available-slots?doctor_id=1&from_date=2025-01-01&to_date=2025-01-31
+Accept: application/json
+
+### ===============================
+### Patient Management
+### ===============================
+
+### Create Patient
+POST http://127.0.0.1:8005/appointments/patients
+Content-Type: application/json
+
+{
+  "name": "Nguyễn Văn A",
+  "phone": "0901234567",
+  "email": "nguyenvana@gmail.com"
+}
+
+### ===============================
+### USE CASE 1: Đặt lịch khám
+### ===============================
+
+### Create Appointment (Book Appointment)
+POST http://127.0.0.1:8005/appointments/
+Content-Type: application/json
+
+{
+  "patient_id": 1,
+  "doctor_id": 1,
+  "department_id": 1,
+  "slot_id": 1,
+  "reason": "Khám tổng quát định kỳ, có triệu chứng đau ngực nhẹ"
+}
+
+### ===============================
+### USE CASE 2: Xác nhận lịch khám
+### ===============================
+
+### Get Pending Appointments for Doctor
+GET http://127.0.0.1:8005/appointments/doctor/1/pending
+Accept: application/json
+
+### Confirm Appointment
+PUT http://127.0.0.1:8005/appointments/1/confirm?confirmed_by=1
+Content-Type: application/json
+
+{
+  "action": "confirm"
+}
+
+### Reject Appointment
+PUT http://127.0.0.1:8005/appointments/2/confirm?confirmed_by=1
+Content-Type: application/json
+
+{
+  "action": "reject",
+  "rejection_reason": "Bác sĩ bận đột xuất, vui lòng đặt lại lịch khác"
+}
+
+### ===============================
+### USE CASE 3: Cập nhật lịch khám
+### ===============================
+
+### Update Appointment
+PUT http://127.0.0.1:8005/appointments/1?updated_by=1
+Content-Type: application/json
+
+{
+  "slot_id": 2,
+  "reason": "Khám tổng quát định kỳ, có triệu chứng đau ngực và khó thở"
+}
+
+### Update Appointment - Change Doctor
+PUT http://127.0.0.1:8005/appointments/1?updated_by=1
+Content-Type: application/json
+
+{
+  "doctor_id": 2,
+  "slot_id": 4,
+  "reason": "Chuyển sang bác sĩ khác do lịch phù hợp hơn"
+}
+
+### ===============================
+### USE CASE 4: Hủy lịch khám
+### ===============================
+
+### Cancel Appointment (by Patient)
+DELETE http://127.0.0.1:8005/appointments/1/cancel?cancelled_by_user=1
+Content-Type: application/json
+
+{
+  "cancelled_by": "PATIENT",
+  "cancellation_reason": "Có việc đột xuất, không thể đến khám"
+}
+
+### Cancel Appointment (by Doctor)
+DELETE http://127.0.0.1:8005/appointments/2/cancel?cancelled_by_user=1
+Content-Type: application/json
+
+{
+  "cancelled_by": "DOCTOR",
+  "cancellation_reason": "Bác sĩ có ca cấp cứu"
+}
+
+### ===============================
+### Query Endpoints
+### ===============================
+
+### Get All Appointments with Pagination
+GET http://127.0.0.1:8005/appointments/?page=1&page_size=10
+Accept: application/json
+
+### Get Appointments by Patient
+GET http://127.0.0.1:8005/appointments/?patient_id=1&page=1&page_size=5
+Accept: application/json
+
+### Get Appointments by Doctor
+GET http://127.0.0.1:8005/appointments/?doctor_id=1&page=1&page_size=5
+Accept: application/json
+
+### Get Appointments by Status
+GET http://127.0.0.1:8005/appointments/?status=PENDING&page=1&page_size=10
+Accept: application/json
+
+### Get Appointments by Date Range
+GET http://127.0.0.1:8005/appointments/?from_date=2025-01-01&to_date=2025-01-31&page=1&page_size=20
+Accept: application/json
+
+### Get Appointment Details
+GET http://127.0.0.1:8005/appointments/1
+Accept: application/json
+
+### Get Patient Appointments
+GET http://127.0.0.1:8005/appointments/patient/1
+Accept: application/json
+
+### Get Patient Appointments by Status
+GET http://127.0.0.1:8005/appointments/patient/1?status=confirmed
+Accept: application/json
+
+### ===============================
+### Error Scenarios
+### ===============================
+
+### Try to book unavailable slot
+POST http://127.0.0.1:8005/appointments/
+Content-Type: application/json
+
+{
+  "patient_id": 1,
+  "doctor_id": 1,
+  "department_id": 1,
+  "slot_id": 1,
+  "reason": "Test booking already booked slot"
+}
+
+### Try to confirm non-existent appointment
+PUT http://127.0.0.1:8005/appointments/999/confirm?confirmed_by=1
+Content-Type: application/json
+
+{
+  "action": "confirm"
+}
+
+### Try to update appointment without authorization
+PUT http://127.0.0.1:8005/appointments/1?updated_by=999
+Content-Type: application/json
+
+{
+  "reason": "Unauthorized update attempt"
+}
+
+### Try to cancel appointment too late
+DELETE http://127.0.0.1:8005/appointments/1/cancel?cancelled_by_user=1
+Content-Type: application/json
+
+{
+  "cancelled_by": "PATIENT",
+  "cancellation_reason": "Late cancellation test"
+}

@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from src.controllers.appointment_controller import router as appointment_router
 from config.settings import settings
 from config.database import test_db_connection, init_db
 from config.database_utils import (
@@ -62,13 +62,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include appointment router
+app.include_router(appointment_router)
 
 @app.get("/")
 async def root():
     return {
         "message": f"Welcome to {settings.app.title}",
         "version": settings.app.version,
-        "status": "running"
+        "status": "running",
+        "microservice": "Appointment Management"
     }
 
 @app.get("/health")
@@ -79,6 +82,7 @@ async def health_check():
     health_data = {
         "status": "healthy" if db_status == "healthy" else "degraded",
         "version": settings.app.version,
+        "microservice": "Appointment Management",
         "database": db_status,
         "message": "Service is running"
     }
@@ -90,7 +94,7 @@ async def health_check():
         health_data["database_details"] = {
             "driver": db_info.get("driver"),
             "pool_size": settings.database.pool_size,
-            "schema": "admin"
+            "schema": "appointment_mgmt"
         }
     except Exception as e:
         health_data["database_error"] = str(e)
