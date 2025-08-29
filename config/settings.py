@@ -4,6 +4,17 @@ from typing import Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
+class RabbitMQConfig(BaseModel):
+    """RabbitMQ configuration settings"""
+    host: str = Field(default="localhost")
+    port: int = Field(default=5672, ge=1, le=65535)
+    username: Optional[str] = Field(default="guest")
+    password: Optional[str] = Field(default="guest")
+    virtual_host: str = Field(default="/")
+    exchange_name: str = Field(default="appointment.events")
+    queue_name: str = Field(default="appointment.confirmed")
+    routing_key: str = Field(default="appointment.confirmed")
+
 class DatabaseConfig(BaseModel):
     """Database configuration settings"""
     url: str = Field(default="postgresql://postgres:postgres@localhost:5432/postgres")
@@ -48,6 +59,7 @@ class Settings(BaseModel):
     database: DatabaseConfig = DatabaseConfig()
     redis: RedisConfig = RedisConfig()
     mongo: MongoConfig = MongoConfig()
+    rabbitmq: RabbitMQConfig = RabbitMQConfig()
 
     class Config:
         env_file = ".env"
@@ -63,6 +75,9 @@ def get_settings() -> Settings:
     - APP__DEBUG=true
     - DATABASE__URL=postgresql://user:pass@localhost/db
     - REDIS__HOST=redis-server
+    - RABBITMQ__HOST=rabbitmq-server
+    - RABBITMQ__USERNAME=admin
+    - RABBITMQ__PASSWORD=password123
     """
     # Load database URL with multiple fallbacks
     database_url = (
@@ -96,6 +111,16 @@ def get_settings() -> Settings:
             database=os.getenv("MONGO__DATABASE", "hospital-management"),
             username=os.getenv("MONGO__USERNAME"),
             password=os.getenv("MONGO__PASSWORD"),
+        ),
+        rabbitmq=RabbitMQConfig(
+            host=os.getenv("RABBITMQ__HOST", "localhost"),
+            port=int(os.getenv("RABBITMQ__PORT", "5672")),
+            username=os.getenv("RABBITMQ__USERNAME", "guest"),
+            password=os.getenv("RABBITMQ__PASSWORD", "guest"),
+            virtual_host=os.getenv("RABBITMQ__VIRTUAL_HOST", "/"),
+            exchange_name=os.getenv("RABBITMQ__EXCHANGE_NAME", "appointment.events"),
+            queue_name=os.getenv("RABBITMQ__QUEUE_NAME", "appointment.confirmed"),
+            routing_key=os.getenv("RABBITMQ__ROUTING_KEY", "appointment.confirmed"),
         )
     )
 

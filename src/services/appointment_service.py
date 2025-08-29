@@ -20,6 +20,10 @@ from src.dto.appointment_dto import (
 )
 from src.dto.pagination_dto import PaginatedResponseDTO, PaginationRequestDTO
 from src.services.user_auth_service import UserAuthService
+from src.services.event_publisher import get_event_publisher  # Import event publisher
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AppointmentService:
     def __init__(self, db: Session):
@@ -30,6 +34,7 @@ class AppointmentService:
         self.patient_repo = PatientRepository(db)
         self.appointment_repo = AppointmentRepository(db)
         self.user_auth_service = UserAuthService(self.doctor_repo, self.patient_repo)
+        self.event_publisher = get_event_publisher()
 
     # ===============================
     # Use Case Support Methods
@@ -177,6 +182,32 @@ class AppointmentService:
             appointment.confirmed_at = datetime.now()
             message = f"Appointment {appointment_id} has been confirmed successfully"
 
+            # PUBLISH RABBITMQ EVENT CHỈ KHI APPOINTMENT ĐƯỢC CONFIRM (PENDING → CONFIRMED)
+            try:
+                appointment_response = self._build_appointment_response(appointment)
+                appointment_data = {
+                    "id": appointment_response.id,
+                    "patient_id": appointment_response.patient_id,
+                    "patient_name": appointment_response.patient_name,
+                    "doctor_id": appointment_response.doctor_id,
+                    "doctor_name": appointment_response.doctor_name,
+                    "department_id": appointment_response.department_id,
+                    "department_name": appointment_response.department_name,
+                    "appointment_date": appointment_response.appointment_date,
+                    "appointment_time": appointment_response.appointment_time,
+                    "reason": appointment_response.reason,
+                    "is_emergency": appointment_response.is_emergency,
+                    "confirmed_at": appointment.confirmed_at,
+                    "confirmed_by": confirmed_by
+                }
+
+                self.event_publisher.publish_appointment_confirmed_today(appointment_data)
+                logger.info(f"Published RabbitMQ event for confirmed appointment {appointment_id}")
+
+            except Exception as e:
+                # Log error but don't fail the main operation
+                logger.error(f"Failed to publish RabbitMQ event for appointment {appointment_id}: {e}")
+
         elif confirm_data.action.lower() == 'reject':
             if not confirm_data.rejection_reason:
                 raise HTTPException(
@@ -215,21 +246,21 @@ class AppointmentService:
                 detail=f"Appointment with id {appointment_id} not found"
             )
 
-        # 2. Validate ownership
+        # Validate ownership
         if appointment.patient_id != updated_by_patient_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You can only update your own appointments"
             )
 
-        # 3. Validate appointment can be updated
+        # Validate appointment can be updated
         if appointment.status not in [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot update appointment with status: {appointment.status}"
             )
 
-        # 4. Validate appointment is not in the past
+        # Validate appointment is not in the past
         if appointment.appointment_date < date.today():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -237,9 +268,6 @@ class AppointmentService:
             )
 
         # 5. Process updates
-        old_slot_id = appointment.slot_id
-
-        # Update doctor if provided
         if update_data.doctor_id and update_data.doctor_id != appointment.doctor_id:
             new_doctor = self.doctor_repo.get_by_id(update_data.doctor_id)
             if not new_doctor or not new_doctor.is_active:
@@ -247,48 +275,38 @@ class AppointmentService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="New doctor not found or inactive"
                 )
-
-            # Must be same department or update will handle department change
             if new_doctor.department_id != appointment.department_id:
                 appointment.department_id = new_doctor.department_id
-
             appointment.doctor_id = update_data.doctor_id
 
-        # Update slot if provided
         if update_data.slot_id and update_data.slot_id != appointment.slot_id:
             if not self.slot_repo.is_slot_available(update_data.slot_id):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="New time slot is not available"
                 )
-
             new_slot = self.slot_repo.get_by_id(update_data.slot_id)
             if not new_slot:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="New slot not found"
                 )
-
-            # Validate slot belongs to the doctor
             if new_slot.doctor_id != appointment.doctor_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="New slot does not belong to the selected doctor"
                 )
-
             appointment.slot_id = update_data.slot_id
             appointment.appointment_date = new_slot.available_date
             appointment.appointment_time = new_slot.start_time
 
-        # Update reason if provided
         if update_data.reason:
             appointment.reason = update_data.reason
 
-        # Update emergency status if provided
         if update_data.is_emergency is not None:
             appointment.is_emergency = update_data.is_emergency
 
-        # 6. Update appointment (triggers will handle slot booking/release)
+        # 6. Update appointment
         updated_appointment = self.appointment_repo.update(appointment)
 
         return self._build_appointment_response(updated_appointment)
@@ -356,6 +374,9 @@ class AppointmentService:
                 detail="Cannot cancel emergency appointment within 30 minutes of scheduled time. Please contact the hospital directly."
             )
 
+
+        was_previously_confirmed = appointment.status == AppointmentStatus.CONFIRMED
+
         # 5. Cancel appointment
         appointment.status = AppointmentStatus.CANCELLED
         appointment.cancelled_by = cancel_data.cancelled_by
@@ -363,7 +384,37 @@ class AppointmentService:
         appointment.cancellation_reason = cancel_data.cancellation_reason
 
         # 6. Update appointment (trigger will release the slot)
-        self.appointment_repo.update(appointment)
+        updated_appointment = self.appointment_repo.update(appointment)
+
+        # PUBLISH RABBITMQ EVENT CHỈ NẾU APPOINTMENT TRƯỚC ĐÓ ĐÃ CONFIRMED (CONFIRMED → CANCELLED)
+        if was_previously_confirmed:
+            try:
+                appointment_response = self._build_appointment_response(updated_appointment)
+                appointment_data = {
+                    "id": appointment_response.id,
+                    "patient_id": appointment_response.patient_id,
+                    "patient_name": appointment_response.patient_name,
+                    "doctor_id": appointment_response.doctor_id,
+                    "doctor_name": appointment_response.doctor_name,
+                    "department_id": appointment_response.department_id,
+                    "department_name": appointment_response.department_name,
+                    "appointment_date": appointment_response.appointment_date,
+                    "appointment_time": appointment_response.appointment_time,
+                    "reason": appointment_response.reason,
+                    "is_emergency": appointment_response.is_emergency,
+                    "status": appointment_response.status.value,
+                    "cancelled_by": cancel_data.cancelled_by,
+                    "cancelled_at": appointment.cancelled_at.isoformat(),
+                    "cancellation_reason": cancel_data.cancellation_reason
+                }
+
+                self.event_publisher.publish_appointment_cancelled(appointment_data)
+                logger.info(f"Published RabbitMQ event for cancelled appointment {appointment_id} (was previously confirmed)")
+
+            except Exception as e:
+                logger.error(f"Failed to publish RabbitMQ event for cancelled appointment {appointment_id}: {e}")
+        else:
+            logger.info(f"No event published for cancelled appointment {appointment_id} (was not previously confirmed)")
 
         return MessageResponseDTO(message=f"Appointment {appointment_id} has been cancelled successfully")
 
@@ -414,15 +465,24 @@ class AppointmentService:
         )
 
     def get_appointment_detail(self, appointment_id: int) -> AppointmentDetailResponseDTO:
-        """Lấy chi tiết lịch khám"""
         appointment = self.appointment_repo.get_by_id(appointment_id)
         if not appointment:
             raise HTTPException(
                 status_code=fastapi.status.HTTP_404_NOT_FOUND,
                 detail=f"Appointment with id {appointment_id} not found"
             )
-
-        return AppointmentDetailResponseDTO.model_validate(appointment, from_attributes=True)
+        base_response = self._build_appointment_response(appointment)
+        return AppointmentDetailResponseDTO(
+            **base_response.model_dump(),
+            slot_id=appointment.slot_id,
+            confirmed_by=getattr(appointment, "confirmed_by", None),
+            confirmed_at=getattr(appointment, "confirmed_at", None),
+            rejection_reason=getattr(appointment, "rejection_reason", None),
+            rejected_at=getattr(appointment, "rejected_at", None),
+            cancelled_by=getattr(appointment, "cancelled_by", None),
+            cancelled_at=getattr(appointment, "cancelled_at", None),
+            cancellation_reason=getattr(appointment, "cancellation_reason", None),
+        )
 
     def get_patient_appointments(self, patient_id: int, status: Optional[str] = None) -> List[AppointmentResponseDTO]:
         """Lấy lịch khám của bệnh nhân"""
