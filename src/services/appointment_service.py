@@ -465,15 +465,24 @@ class AppointmentService:
         )
 
     def get_appointment_detail(self, appointment_id: int) -> AppointmentDetailResponseDTO:
-        """Lấy chi tiết lịch khám"""
         appointment = self.appointment_repo.get_by_id(appointment_id)
         if not appointment:
             raise HTTPException(
                 status_code=fastapi.status.HTTP_404_NOT_FOUND,
                 detail=f"Appointment with id {appointment_id} not found"
             )
-
-        return AppointmentDetailResponseDTO.model_validate(appointment, from_attributes=True)
+        base_response = self._build_appointment_response(appointment)
+        return AppointmentDetailResponseDTO(
+            **base_response.model_dump(),
+            slot_id=appointment.slot_id,
+            confirmed_by=getattr(appointment, "confirmed_by", None),
+            confirmed_at=getattr(appointment, "confirmed_at", None),
+            rejection_reason=getattr(appointment, "rejection_reason", None),
+            rejected_at=getattr(appointment, "rejected_at", None),
+            cancelled_by=getattr(appointment, "cancelled_by", None),
+            cancelled_at=getattr(appointment, "cancelled_at", None),
+            cancellation_reason=getattr(appointment, "cancellation_reason", None),
+        )
 
     def get_patient_appointments(self, patient_id: int, status: Optional[str] = None) -> List[AppointmentResponseDTO]:
         """Lấy lịch khám của bệnh nhân"""
