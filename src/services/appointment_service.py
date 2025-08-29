@@ -473,7 +473,20 @@ class AppointmentService:
             )
         base_response = self._build_appointment_response(appointment)
         return AppointmentDetailResponseDTO(
-            **base_response.model_dump(),
+            id=base_response.id,
+            patient_id=base_response.patient_id,
+            patient_name=base_response.patient_name,
+            doctor_id=base_response.doctor_id,
+            doctor_name=base_response.doctor_name,
+            department_id=base_response.department_id,
+            department_name=base_response.department_name,
+            appointment_date=base_response.appointment_date,
+            appointment_time=base_response.appointment_time,
+            reason=base_response.reason,
+            is_emergency=base_response.is_emergency,
+            status=base_response.status,
+            created_at=base_response.created_at,
+            updated_at=base_response.updated_at,
             slot_id=appointment.slot_id,
             confirmed_by=getattr(appointment, "confirmed_by", None),
             confirmed_at=getattr(appointment, "confirmed_at", None),
