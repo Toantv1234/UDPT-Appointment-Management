@@ -1,0 +1,20 @@
+name: microservice_appointment_management
+services:
+  fastapi:
+    build: .
+    container_name: microservice_appointment_management
+    ports:
+      - "${APP__PORT:-8005}:8005"
+    environment:
+      DATABASE__URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS__HOST: redis
+      MONGO__HOST: mongo
+      RABBITMQ__HOST: rabbitmq
+    env_file:
+      - .env
+    networks:
+      - shared-project-network
+
+networks:
+  shared-project-network:
+    external: true
