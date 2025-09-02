@@ -13,8 +13,8 @@ services:
     env_file:
       - .env
     networks:
-      - shared-project-network
+      - private-hospital-network
 
 networks:
-  shared-project-network:
+  private-hospital-network:
     external: true
